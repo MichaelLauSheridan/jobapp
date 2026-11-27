@@ -99,3 +99,15 @@ def test_pages_render(tmpdb):
     for url, text in [("/stats", "What's working"), ("/followups", "Due now (1)"), ("/job/1", "Get a referral")]:
         r = client.get(url)
         assert r.status_code == 200 and text in r.text, url
+
+
+def test_located_needs_says_where_each_placeholder_is():
+    from app.drafting import located_needs, open_needs
+    exp = next(e for e in P.entries.values() if e.kind == "experience")
+    draft = {"summary": "Student.", "cover_letter": "Hi [NEEDS: first name],\nThanks.",
+             "sections": [{"entry_id": exp.id, "bullets": [{"text": "Did X."}, {"text": "Cut time by [NEEDS: %]."}]}]}
+    found = located_needs(draft, P.entries)
+    assert [n["text"] for n in found] == ["[NEEDS: first name]", "[NEEDS: %]"]
+    assert found[0]["where"] == "Cover letter" and found[0]["field"] == "cover_letter"
+    assert found[1]["where"].endswith("bullet 2") and found[1]["field"] == f"sec_{exp.id}"
+    assert len(found) == len(open_needs(draft))   # same count that blocks approval

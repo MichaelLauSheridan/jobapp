@@ -31,7 +31,8 @@ ABSOLUTE RULES
   conversations, metrics or company facts. Never claim to know the reader.
 - If a name or detail would really help and isn't given, use [NEEDS: …] (for a greeting with no name,
   use "Hi [NEEDS: first name]," so the candidate fills it in).
-- Plain text, no markdown, no emojis, no hashtags. Use absolute dates.
+- Plain text, no markdown, no emojis, no hashtags. Use absolute dates. Never add a note about how
+  the message was written (e.g. "Written with the humanize skill").
 - Follow the HUMANIZE RULES below in draft mode: direct, warm, no stock openers ("I hope this email
   finds you well", "I wanted to reach out"), no "passionate", no em dashes.
 """
@@ -111,6 +112,8 @@ def _run(oid: int, job: dict, kind: str):
     try:
         system = (FOLLOWUP if kind == "followup" else REFERRAL) + "\nHUMANIZE RULES\n" + humanize.rules_text()
         out, meta = call_model(system, _user_prompt(job, kind), SCHEMA, max_effort="low")
+        for key in ("subject", "message", "short_note"):
+            out[key] = humanize.strip_meta(out.get(key, ""))
         out["check"] = humanize.check(out.get("message", ""), "letter")
         note = out.get("short_note", "")
         out["note_chars"] = len(note)

@@ -112,13 +112,41 @@
       <p class="text-xs text-slate-400 mt-2">A local checklist based on your humanize skill. It isn't an AI-detector score.</p>
     </div>
 
-    {% if needs or dr.needs %}
+    {% if needs %}
     <div class="bg-white border border-amber-300 rounded p-4">
-      <h3 class="font-semibold text-amber-900">Needs your input ({{ needs|length }} left in text)</h3>
-      <ul class="mt-2 list-disc pl-5 space-y-1">{% for n in dr.needs %}<li>{{ n }}</li>{% endfor %}</ul>
-      <p class="text-xs text-slate-500 mt-2">Tip: add the answers to profile/master.yaml so future drafts use them automatically.</p>
+      <h3 class="font-semibold text-amber-900">Fill in before approving ({{ needs|length }} left)</h3>
+      <p class="text-xs text-slate-600 mt-1">Replace each placeholder with the real detail, or delete it (or its sentence),
+        then click <b>Save edits &amp; re-score</b>. Click one to jump to it.</p>
+      <ul class="mt-2 space-y-1.5">
+        {% for n in needs %}
+        <li><button type="button" class="needs-jump text-left w-full rounded border border-amber-200 bg-amber-50 hover:bg-amber-100 px-2 py-1"
+                    data-field="{{ n.field }}" data-text="{{ n.text }}">
+          <span class="block text-xs text-slate-500">{{ n.where }}</span>
+          <span class="font-mono text-xs text-amber-900">{{ n.text }}</span></button></li>
+        {% endfor %}
+      </ul>
     </div>
     {% endif %}
+
+    {% if dr.needs %}
+    <div class="bg-white border rounded p-4">
+      <h3 class="font-semibold">Questions from the AI (optional)</h3>
+      <p class="text-xs text-slate-500 mt-1">Advice only; these don't block approval. If an answer is a lasting fact about you,
+        add it to profile/master.yaml so future drafts can use it.</p>
+      <ul class="mt-2 list-disc pl-5 space-y-1">{% for n in dr.needs %}<li>{{ n }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    <script>
+      // Clicking a placeholder scrolls to its text box and selects it, so you can type over it.
+      document.querySelectorAll(".needs-jump").forEach(btn => btn.addEventListener("click", () => {
+        const box = document.querySelector(`textarea[name="${btn.dataset.field}"]`);
+        if (!box) return;
+        box.scrollIntoView({behavior: "smooth", block: "center"});
+        const start = box.value.indexOf(btn.dataset.text);
+        box.focus();
+        if (start >= 0) box.setSelectionRange(start, start + btn.dataset.text.length);
+      }));
+    </script>
 
     {% if dr.warnings %}
     <div class="bg-white border rounded p-4">

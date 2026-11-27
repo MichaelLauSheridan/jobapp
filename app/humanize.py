@@ -11,6 +11,15 @@ from pathlib import Path
 
 SKILL_DIR = Path.home() / ".claude" / "skills" / "humanize"
 
+# A line like "Written with the humanize skill (draft mode)." is a note meant for the person in a
+# chat, never for the employer. Any line mentioning "humanize" in generated text is that note.
+_META_LINE = re.compile(r"^[^\n]*\bhumani[sz](?:e|ed|ing)\b[^\n]*\n*", re.I | re.M)
+
+
+def strip_meta(text: str) -> str:
+    """Remove notes about the writing process that the model sometimes adds to letters/messages."""
+    return _META_LINE.sub("", text or "").strip()
+
 FALLBACK_RULES = """Write like a real person: no em or en dashes; vary sentence length (some under 6
 words, some over 25); use contractions; at most one 'A, B, and C' list; no 'it's not X, it's Y'
 frames; no filler transitions (Moreover, Furthermore, Additionally); no stock openers or closers;

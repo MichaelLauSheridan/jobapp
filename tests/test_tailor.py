@@ -67,3 +67,11 @@ def test_humanize_check_flags_tells():
 
 def test_rules_load_from_skill():
     assert "NEEDS" in humanize.rules_text()
+
+
+def test_process_notes_never_reach_the_letter():
+    letter = "Written with the humanize skill (draft mode).\n\nDear Hiring Manager,\n\nI'm applying."
+    assert humanize.strip_meta(letter) == "Dear Hiring Manager,\n\nI'm applying."
+    d = validate({"keywords": [], "summary": "x", "skills": [], "sections": [], "needs": [],
+                  "cover_letter": letter}, P)
+    assert d["cover_letter"].startswith("Dear Hiring Manager")

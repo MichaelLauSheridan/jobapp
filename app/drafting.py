@@ -97,6 +97,29 @@ def open_needs(draft: dict) -> list[str]:
     return [m for t in texts for m in NEEDS.findall(t)]
 
 
+def located_needs(draft: dict, entries: dict) -> list[dict]:
+    """Every [NEEDS: …] placeholder still in the text, with where it is.
+
+    Each item has:
+      where: a readable label, e.g. "Cover letter" or "Data Analyst Intern | Example Nonprofit, bullet 2"
+      field: the name of the text box on the draft page that holds it (used to jump there)
+      text:  the placeholder itself
+    """
+    places = [("Cover letter", "cover_letter", draft.get("cover_letter", "")),
+              ("Summary", "summary", draft.get("summary", ""))]
+    for section in draft.get("sections", []):
+        entry = entries.get(section["entry_id"])
+        heading = entry.heading if entry else section["entry_id"]
+        for number, bullet in enumerate(section["bullets"], start=1):
+            places.append((f"{heading}, bullet {number}", f"sec_{section['entry_id']}", bullet["text"]))
+
+    found = []
+    for where, field, text in places:
+        for placeholder in NEEDS.findall(text):
+            found.append({"where": where, "field": field, "text": placeholder})
+    return found
+
+
 def approve(did: int) -> dict:
     with db.session() as c:
         row = c.execute("SELECT * FROM drafts WHERE id=?", (did,)).fetchone()

@@ -128,7 +128,7 @@ def view_draft(request: Request, job_id: int, msg: str = "", err: str = ""):
     profile = load_profile()
     return templates.TemplateResponse(request, "draft.html", {
         "job": job, "d": d, "entries": profile.entries, "msg": msg, "err": err,
-        "needs": drafting.open_needs(d["draft"]) if d["draft"] else [],
+        "needs": drafting.located_needs(d["draft"], profile.entries) if d["draft"] else [],
         "prefill": __import__("app.prefill", fromlist=["read_status"]).read_status(d["id"]),
         "file_names": [os.path.basename(f) for f in (d["files"] or [])]})
 
@@ -288,4 +288,4 @@ def run_now(kind: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("PORT", 8000)))

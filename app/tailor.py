@@ -82,7 +82,7 @@ RESUME (ATS-first, one page)
 COVER LETTER (humanize skill, draft mode)
 - Follow the HUMANIZE RULES below exactly: draft mode for a cover letter.
 - Format: "Dear Hiring Manager," ... sign off "Best," then the candidate's full name. Under 300 words, plain text,
-  no markdown, no address block.
+  no markdown, no address block. The letter starts at "Dear", with no note about how it was written.
 - Name the actual role and company. Use one concrete thing from the posting itself; never generic
   mission praise. Build it around one or two real achievements from the profile.
 - Mention availability (January to August 2027, 4 or 8 months) once, briefly.
@@ -190,6 +190,8 @@ def _api(system: str, user: str, model: str, effort: str, prices: dict, schema: 
 def validate(draft: dict, profile: Profile) -> dict:
     """Drop anything not traceable to the profile. Returns the cleaned draft with `warnings`."""
     warnings = []
+    if "cover_letter" in draft:
+        draft["cover_letter"] = humanize.strip_meta(draft["cover_letter"])
     allowed = {s.lower(): s for items in profile.skills.values() for s in items}
     skills = []
     for cat in draft.get("skills", []):
