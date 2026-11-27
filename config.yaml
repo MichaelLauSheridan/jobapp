@@ -1,0 +1,103 @@
+# JobApp settings. Edit freely; changes apply on the next app restart.
+
+poll_minutes:
+  boards: 10     # Greenhouse / Lever / Ashby / Workday company boards (official public APIs)
+  jobspy: 45     # LinkedIn / Indeed / Glassdoor search. Kept infrequent to limit rate-limiting
+
+notify:
+  min_score: 50          # desktop pop-up only for jobs scoring at least this much (0-100)
+  max_per_run: 5         # more than this in one poll -> a single summary pop-up instead
+
+search:
+  # A job must look like a student role (title) to be kept at all.
+  student_terms: [intern, internship, co-op, coop, "co op", student, placement, "work term", apprentice]
+  # Your core fields. In the title: +30.
+  core_terms: [software, developer, "data", analytics, "data science", "machine learning", ml, ai,
+               "artificial intelligence", "business intelligence", bi, backend, frontend, "full stack",
+               fullstack, programmer, python, sql, insights, "data engineer", nlp, genai]
+  # Related but broader. In the title: +15. A job needs a core or broad term in its title to be kept.
+  broad_terms: [engineer, engineering, analyst, scientist, cloud, devops, automation, quantitative, quant,
+                research, technology, tech, computer, digital, it, "information technology", systems, cyber,
+                security, web, mobile, application, qa, "quality assurance", test, reporting]
+  # Fields you're not targeting. In the title: -15.
+  off_field_terms: [hardware, asic, electrical, mechanical, civil, chemical, procurement, tax, taxation,
+                    mortgage, accounting, audit, legal, marketing, sales, hr, "human resources", optical,
+                    reliability, industrialization, manufacturing]
+  exclude_title_terms: [senior, sr., staff, principal, manager, director, lead, phd, "ph.d", "post-doc",
+                        postdoc, "master's", masters, msc, mba, "graduate degree"]
+  # Term fit: you're available Jan-Aug 2027 for 4 or 8 months.
+  good_term_terms: ["winter 2027", "january 2027", "jan 2027", "summer 2027", "may 2027", "spring 2027",
+                    "4 month", "4-month", "8 month", "8-month", "four month", "eight month"]
+  bad_term_terms: ["fall 2026", "september 2026", "fall 2027", "september 2027", "12 month", "12-month",
+                   "16 month", "16-month", "twelve month", "sixteen month"]
+
+jobspy:
+  sites: [linkedin, indeed, glassdoor]
+  search_terms: ["software developer intern", "data analyst intern", "data science intern",
+                 "machine learning intern", "software engineer co-op", "data co-op"]
+  locations:
+    - {location: "Toronto, ON", distance: 50, is_remote: false}
+    - {location: "Canada", distance: 0, is_remote: true}
+  hours_old: 24
+  results_wanted: 25
+
+tailor:
+  # claude_cli = use your Claude plan via Claude Code (no API credits)
+  # api        = use ANTHROPIC_API_KEY from .env (pay per token)
+  backend: claude_cli
+  model: claude-opus-5-5     # best writing. claude-sonnet-5-5 is about half the cost / plan usage
+  effort: medium             # low | medium | high
+  timeout_seconds: 600
+  export_pdf: true           # needs Microsoft Word installed (it is on this PC)
+  prices:                    # USD per 1M tokens, for the cost estimate shown on each draft (API backend)
+    claude-opus-5-5: {input: 4.00, output: 20.00}
+    claude-sonnet-5-5: {input: 2.00, output: 10.00}
+    claude-haiku-5-5: {input: 0.10, output: 0.50}
+
+followups:
+  days: 7          # remind to follow up this many days after applying (if no reply yet)
+  toast: true      # one desktop reminder per day (after 9am) when any are due
+
+tracker:
+  # Your sheet links are saved in tracker-links.local.txt (git-ignored).
+  # PAUSED (25 Nov 2026): set to true once the Apps Script web app is deployed on your copy,
+  # then use "Send all tracked jobs to the sheet" on the Sheet tracker page to catch up.
+  enabled: false
+  sheet_name: "Job Application Tracker 🎖️💻✨"
+  header_row: 2
+  key_column: "Job Posting URL"   # rows are matched by URL, so no extra column is added
+  add_key_column: false
+  anchor_column: "Position"       # new rows go in the first row with an empty Position (No. is pre-filled)
+  date_columns: ["Date Applied"]  # written as real dates so the sheet's "d mmm" format applies
+  # A row is added once you apply (the sheet has no "to apply" status), then kept up to date:
+  sync_statuses: [applied, interview, offer, rejected]
+  # Our status -> the sheet's Status dropdown (must match exactly):
+  status_map: {applied: "Under Consideration", interview: "Interview Completed",
+               offer: "Offer Received", rejected: "Rejected"}
+  # Where the link came from -> the Applied Portal dropdown:
+  portal_map: {greenhouse: "Company Website", lever: "Company Website", ashby: "Company Website",
+               workday: "Company Website", linkedin: "LinkedIn", indeed: "Indeed", glassdoor: "Glassdoor"}
+  job_type: "Internship"          # Job Type dropdown
+  # Our field -> the sheet's column header. Contact Name / Title / E-mail are left for you.
+  columns:
+    role: "Position"
+    job_type: "Job Type"
+    period: "Period - Months"
+    company: "Company Name"
+    location: "Office Location"
+    status: "Status of Application"
+    link: "Job Posting URL"
+    portal: "Applied Portal"
+    date_applied: "Date Applied"
+    notes: "Comments"
+
+# Big, well-known employers get a score bonus.
+preferred_companies: [Google, Microsoft, Amazon, AWS, Meta, Apple, IBM, Shopify, RBC, "Royal Bank",
+  TD, "TD Bank", Scotiabank, BMO, CIBC, Manulife, "Sun Life", Rogers, Bell, Telus, Deloitte, PwC, EY,
+  KPMG, Accenture, Wealthsimple, Cohere, Intact, OMERS, "CPP Investments", "Ontario Teachers",
+  OpenText, "Thomson Reuters", Ubisoft, "Electronic Arts", SAP, Oracle, Cisco, NVIDIA, AMD, Intel,
+  Qualcomm, Autodesk, Salesforce, Adobe, Uber, Instacart, Stripe, Databricks, Snowflake, Pinterest,
+  Coinbase, Geotab, "Capital One", Mastercard, Visa, "American Express", Ericsson, Nokia, Huawei,
+  Samsung, Kinaxis, Ceridian, Dayforce, "Canadian Tire", Loblaw, Sobeys, "Air Canada", Bombardier,
+  CGI, "Hydro One", "Ontario Power Generation", OPG, Ciena, Celestica, BlackBerry, "1Password",
+  Ritual, Faire, Clio, Questrade, Koho, Wattpad, "Top Hat", Ada, Figma, Reddit, Cloudflare, Datadog]

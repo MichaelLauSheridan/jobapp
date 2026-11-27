@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "jobapp",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "app.main"],
+      "port": 8000,
+      "env": { "PYTHONUTF8": "1" }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Follow-ups – JobApp{% endblock %}
+{% block body %}
+{% if running %}<meta http-equiv="refresh" content="10">{% endif %}
+<h1 class="text-xl font-semibold">Follow-ups</h1>
+<p class="text-sm text-slate-600 mt-1">Applications with no reply {{ f.days }}+ days after you applied. A short, specific follow-up
+  often gets an application looked at. Change the timing in config.yaml → followups.days.</p>
+
+<h2 class="font-semibold mt-5 mb-2">Due now ({{ f.due|length }})</h2>
+{% for j in f.due %}
+<div class="bg-white border rounded p-4 mb-3">
+  <div class="flex flex-wrap items-center gap-3">
+    <div class="flex-1"><a href="/job/{{ j.id }}" class="font-medium text-blue-700 hover:underline">{{ j.title }}</a>
+      <div class="text-sm text-slate-500">{{ j.company }} · applied {{ j.applied_at|ago }}</div></div>
+    <form method="post" action="/job/{{ j.id }}/outreach/followup"><input type="hidden" name="back" value="/followups">
+      <button class="bg-blue-700 text-white rounded px-3 py-1 text-sm">{{ 'Write a new draft' if drafts[j.id] else 'Draft follow-up email' }}</button></form>
+    <form method="post" action="/job/{{ j.id }}/followup/snooze"><button class="border rounded px-3 py-1 text-sm bg-white">Snooze 3 days</button></form>
+    <form method="post" action="/job/{{ j.id }}/followup/done"><button class="border rounded px-3 py-1 text-sm bg-white">Already followed up</button></form>
+  </div>
+  <div class="mt-2">{% with o=drafts[j.id], kind='followup', back='/followups' %}{% include "_outreach.html" %}{% endwith %}</div>
+  <p class="text-xs text-slate-500 mt-2">Heard back? Update the status on the <a class="text-blue-700" href="/job/{{ j.id }}">job page</a> (interview / rejected).</p>
+</div>
+{% else %}
+<p class="text-sm text-slate-500">Nothing due. 🎉</p>
+{% endfor %}
+
+<h2 class="font-semibold mt-6 mb-2">Coming up ({{ f.upcoming|length }})</h2>
+<ul class="text-sm space-y-1">{% for j in f.upcoming %}
+  <li><a href="/job/{{ j.id }}" class="text-blue-700">{{ j.company }} – {{ j.title }}</a> <span class="text-slate-500">· applied {{ j.applied_at|ago }}{% if j.followup_snoozed_until %} · snoozed{% endif %}</span></li>
+{% else %}<li class="text-slate-500">No other open applications.</li>{% endfor %}</ul>
+
+<h2 class="font-semibold mt-6 mb-2">Followed up</h2>
+<ul class="text-sm space-y-1">{% for j in f.done %}
+  <li>{{ j.company }} – {{ j.title }} <span class="text-slate-500">· {{ j.followed_up_at|ago }}</span></li>
+{% else %}<li class="text-slate-500">None yet.</li>{% endfor %}</ul>
+{% endblock %}

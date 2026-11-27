@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/
+.env
+output/
+
+# Personal files: never published
+profile/master.yaml
+*.local.*
+/*.docx
+/*.pptx
+/*.pdf
+.claude/settings.local.json

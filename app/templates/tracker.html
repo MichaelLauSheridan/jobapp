@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Sheet tracker – JobApp{% endblock %}
+{% block body %}
+<h1 class="text-xl font-semibold">Google Sheet tracker</h1>
+<p class="text-sm text-slate-600 mt-1">When you mark a job <b>applied</b>, JobApp fills the next empty row of “{{ cfg.get('sheet_name') }}”, then keeps its Status up to date (interview, offer, rejected).
+  It never deletes rows, changes formatting or blanks a cell, and only edits the row whose “{{ cfg.get('key_column') }}” matches the job.</p>
+{% if msg %}<p class="mt-3 p-2 rounded bg-green-50 text-green-800 text-sm">{{ msg }}</p>{% endif %}
+
+<div class="mt-5 grid lg:grid-cols-2 gap-6">
+  <section class="bg-white border rounded p-5 text-sm space-y-3">
+    <h2 class="font-semibold text-base">One-time setup (about 3 minutes)</h2>
+    <ol class="list-decimal pl-5 space-y-2">
+      <li>Open the tracker sheet in Google Sheets → <b>Extensions → Apps Script</b>.</li>
+      <li>Delete what's in <code>Code.gs</code>, paste the script on the right (<b>Copy script</b>), and click 💾 Save.</li>
+      <li><b>Deploy → New deployment</b> → gear icon → <b>Web app</b>. Set <i>Execute as</i>: <b>Me</b>,
+        <i>Who has access</i>: <b>Anyone</b>. Click <b>Deploy</b> and authorize with the Google account that owns or edits the sheet.
+        <div class="text-xs text-slate-500 mt-1">Google shows an “unverified app” warning because it's your own script: Advanced → Go to (project) → Allow.
+          “Anyone” only lets someone who knows the private link <i>and</i> the secret key inside the script write rows.</div></li>
+      <li>Copy the <b>Web app URL</b> (starts with https://script.google.com/macros/s/…) and paste it here:</li>
+    </ol>
+    <form method="post" action="/tracker/url" class="flex gap-2">
+      <input name="url" value="{{ url }}" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 border rounded px-2 py-1">
+      <button class="bg-slate-800 text-white rounded px-3 py-1">Save &amp; test</button>
+    </form>
+    {% if url %}<a href="/tracker?test=1" class="text-blue-700 text-xs">Test connection again</a>{% endif %}
+
+    {% if result %}
+      {% if result.ok %}
+        <div class="p-3 rounded bg-green-50 border border-green-200">
+          <p class="font-medium text-green-900">Connected to tab “{{ result.sheet }}” ({{ result.rows }} rows)</p>
+          <p class="text-xs text-slate-600 mt-1">Tabs: {{ result.tabs|join(', ') }}</p>
+          <p class="text-xs text-slate-600">Headers: {{ result.headers|reject('equalto', '')|join(' · ') }}</p>
+        </div>
+        <div class="p-3 rounded border">
+          <p class="font-medium">Column mapping (config.yaml → tracker.columns)</p>
+          {% for f, h in mapping.mapped.items() %}<p class="text-green-800">✓ {{ f }} → “{{ h }}”</p>{% endfor %}
+          {% for f, h in mapping.missing.items() %}<p class="text-red-700">✗ {{ f }} → “{{ h }}” isn't a column in the sheet</p>{% endfor %}
+          {% if mapping.unused_headers %}<p class="text-slate-500 mt-1">Columns JobApp leaves alone: {{ mapping.unused_headers|join(', ') }}</p>{% endif %}
+        </div>
+      {% else %}
+        <div class="p-3 rounded bg-red-50 border border-red-200 text-red-800">Connection failed: {{ result.error }}</div>
+      {% endif %}
+    {% endif %}
+
+    <form method="post" action="/tracker/sync-all">
+      <button class="border bg-white rounded px-3 py-1" {{ '' if url else 'disabled' }}>Send all tracked jobs to the sheet</button>
+      <span class="text-xs text-slate-500">Statuses synced: {{ cfg.get('sync_statuses', [])|join(', ') }}</span>
+    </form>
+  </section>
+
+  <section class="bg-white border rounded p-5 text-sm">
+    <div class="flex items-center justify-between">
+      <h2 class="font-semibold text-base">Apps Script (contains your secret key)</h2>
+      <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('gs').value); this.textContent='Copied ✓'"
+        class="bg-blue-700 text-white rounded px-3 py-1">Copy script</button>
+    </div>
+    <textarea id="gs" readonly rows="22" class="mt-2 w-full border rounded p-2 font-mono text-xs bg-slate-50">{{ script }}</textarea>
+    <p class="text-xs text-slate-500 mt-1">Don't share this script publicly: the key inside lets anyone with your link add rows.</p>
+  </section>
+</div>
+
+<section class="mt-6 bg-white border rounded p-5 text-sm">
+  <h2 class="font-semibold text-base mb-2">Recent syncs</h2>
+  <table class="w-full">
+    <tr class="text-left text-slate-500"><th>Job</th><th>Queued</th><th>Result</th></tr>
+    {% for r in recent %}
+    <tr class="border-t"><td class="py-1">{{ r.company }} – {{ r.title[:50] }}</td><td>{{ r.created_at|ago }}</td>
+      <td>{% if r.sent_at %}<span class="text-green-700">✓ sent</span>{% elif r.last_error %}<span class="text-red-700" title="{{ r.last_error }}">retrying ({{ r.attempts }}): {{ r.last_error[:70] }}</span>{% else %}pending{% endif %}</td></tr>
+    {% else %}<tr><td colspan="3" class="py-2 text-slate-500">Nothing synced yet.</td></tr>{% endfor %}
+  </table>
+</section>
+{% endblock %}

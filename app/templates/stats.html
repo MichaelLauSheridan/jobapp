@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}What's working – JobApp{% endblock %}
+{% block body %}
+<h1 class="text-xl font-semibold">What's working</h1>
+<p class="text-sm text-slate-600 mt-1">Interview rate = jobs that reached an interview or offer ÷ jobs you applied to.
+  Mark statuses on each job (applied → interview / offer / rejected) to keep this accurate.</p>
+
+<div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+  {% for label, val in [('Applied', s.applied), ('Interviews', s.interviews), ('Offers', s.offers), ('Interview rate', s.rate|string + '%')] %}
+  <div class="bg-white border rounded p-4"><div class="text-sm text-slate-500">{{ label }}</div><div class="text-2xl font-semibold">{{ val }}</div></div>
+  {% endfor %}
+</div>
+
+{% if not s.enough %}
+<p class="mt-4 p-3 rounded bg-amber-50 border border-amber-200 text-sm text-amber-900">
+  {{ s.applied }} application(s) tracked so far. Patterns start meaning something at around 20 to 30, so treat small groups as hints, not proof.</p>
+{% endif %}
+
+<div class="mt-5 grid md:grid-cols-2 gap-5">
+  {% for title, rows in s.groups.items() %}
+  <section class="bg-white border rounded p-4">
+    <h2 class="font-semibold mb-2">{{ title }}</h2>
+    {% if rows %}
+    <table class="w-full text-sm">
+      <tr class="text-left text-slate-500"><th>Group</th><th class="text-right">Applied</th><th class="text-right">Interviews</th><th class="w-40">Rate</th></tr>
+      {% for r in rows %}
+      <tr class="border-t">
+        <td class="py-1">{{ r.group }}</td><td class="text-right">{{ r.applied }}</td><td class="text-right">{{ r.interviews }}</td>
+        <td class="pl-3"><div class="flex items-center gap-2"><div class="h-2 bg-slate-100 rounded flex-1">
+          <div class="h-2 rounded bg-blue-600" style="width: {{ r.rate }}%"></div></div>
+          <span class="w-9 text-right {{ 'text-slate-400' if r.applied < 5 else '' }}">{{ r.rate }}%</span></div></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="text-sm text-slate-500">No applications yet.</p>{% endif %}
+  </section>
+  {% endfor %}
+</div>
+<p class="text-xs text-slate-400 mt-3">Grey rates are groups with fewer than 5 applications.</p>
+{% endblock %}

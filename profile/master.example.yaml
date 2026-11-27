@@ -1,0 +1,118 @@
+# EXAMPLE PROFILE (fictional person). Copy to profile/master.yaml and replace with your own facts.
+# master.yaml is git-ignored so your contact details and form answers never leave your machine.
+#
+# This file is the single source of truth for every tailored resume and cover letter.
+# The AI may only select, reorder and rephrase facts from here. It must never invent facts.
+# Bullets marked `confirm: true` are drafts you haven't approved yet; the app flags them.
+# Entries marked `hide: true` stay in the file but are never used on resumes or letters.
+
+contact:
+  name: Alex Taylor
+  title: Computer Science Student
+  location: Mississauga, ON
+  phone: 555-010-0199
+  email: alex.taylor@example.com
+  linkedin: https://www.linkedin.com/in/example-alex-taylor/
+  github: https://github.com/example-alex-taylor
+
+# Answers for application forms (used by auto-fill only; never put on the resume).
+application:
+  work_authorization: Canadian citizen
+  authorized_to_work_in_canada: "Yes"
+  requires_sponsorship: "No"
+  start_date: January 2027
+  how_heard: Company website
+  city: Mississauga
+  province: Ontario
+  country: Canada
+  school: Example University
+  program: Computer Science
+  degree: Honours Bachelor of Computer Science
+  graduation: April 2028
+
+# Voluntary self-identification, filled only where a form asks. Delete this block to never fill it.
+self_id:
+  gender: Male
+  ethnicity: East Asian
+  disability: "No"
+  veteran: "No"
+
+availability:
+  term: "January 2027 – August 2027"
+  durations: ["4 months", "8 months"]
+  start: 2027-01
+  end: 2027-08
+  preferred_locations: ["Greater Toronto Area", "Remote (Canada)"]
+
+education:
+  - degree: Honours Bachelor of Computer Science
+    school: Example University
+    graduation: April 2028
+    coursework: [Machine Learning, Statistics, Databases, Data Structures & Algorithms, Software Engineering]
+
+awards:
+  - name: Winner – Example Campus Datathon 2026
+    date: 2026
+    detail: Lead presenter for a team of 4, out of 30 teams.
+
+# Why you want internships, in your own words. Cover letters may ONLY use these for
+# "why I want this role"; with none, letters show [NEEDS: ...] instead of making something up.
+motivation:
+  - I want hands-on experience on a real software or data team.
+  - I enjoy turning messy data into something a non-technical person can act on.
+
+skills:
+  languages: [Python, SQL, R, Java, JavaScript]
+  data_ml: [Pandas, Scikit-learn, Apache Spark, Spark SQL, Excel, Machine Learning]
+  databases: [PostgreSQL, SQLite]
+  development: [REST APIs, FastAPI]
+  tools: [Git, GitHub, Linux, Postman]
+
+experience:
+  - title: Data Analyst Intern
+    company: Example Nonprofit
+    start: 2026-09
+    end: 2026-12
+    context: >
+      Part-time placement measuring the impact of a community program for funders.
+    bullets:
+      - text: Cleaned and merged 3 years of program survey data (4,200 responses) in Python into a single reporting table.
+      - text: Built a Google Sheets dashboard tracking 12 program KPIs, used in monthly board reports.
+      - text: Wrote the data section of the annual impact report for funders and partners.
+      - text: Coded 150 open-ended survey answers into 9 themes and turned them into 4 program recommendations.
+        confirm: true   # drafted from notes; not yet approved
+
+  - title: Retail Associate
+    company: Example Electronics Store
+    start: 2022-05
+    end: Present
+    bullets:
+      - text: Help 40+ customers a shift choose and set up devices; trained 5 new hires on the point-of-sale system.
+
+projects:
+  - name: Campus Datathon Financial Resilience Analysis (Winner)
+    stack: [PostgreSQL, Python]
+    date: 2026
+    link: https://github.com/example-alex-taylor/datathon-2026
+    bullets:
+      - text: Analyzed 1M+ synthetic bank transactions in PostgreSQL to compare savings buffers across income groups.
+      - text: Presented the winning pitch to a panel of 5 industry judges.
+
+  - name: Apache Spark Weather Analysis
+    stack: [Apache Spark, Spark SQL, Python]
+    date: 2026
+    bullets:
+      - text: Processed 10 years of hourly weather data with Spark SQL to find seasonal temperature trends.
+      - text: Compared Spark and Pandas run times on 2 GB of data and documented when each is the better fit.
+
+  - name: Diabetes Risk Classifier
+    stack: [Python, Scikit-learn]
+    date: 2025
+    bullets:
+      - text: Trained and cross-validated 4 classifiers on a public health dataset; the best reached 76% accuracy.
+
+  - name: Hidden Demo Project
+    stack: [Python]
+    hide: true   # example of a project kept in the file but never shown to employers
+    bullets:
+      - text: This bullet should never appear on a generated resume.

@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+httpx
+apscheduler>=3.10,<4
+python-jobspy
+rapidfuzz
+winotify
+pyyaml
+python-dotenv
+pytest
+python-docx
+docx2pdf
+anthropic
+playwright
+pypdf
