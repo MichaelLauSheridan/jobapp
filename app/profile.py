@@ -63,6 +63,9 @@ class Profile:
                    + (" | ".join(mot) if mot else "none given"))
         out.append("SKILLS (you may only list skills from here):")
         for cat, items in self.skills.items():
+            if cat == ADDED_CATEGORY:
+                used = {a["skill"]: a.get("where", "") for a in load_added_skills()}
+                items = [f"{s} (used in: {used[s]})" if used.get(s) else s for s in items]
             out.append(f"  {cat}: {', '.join(items)}")
         for e in self.entries.values():
             out.append(f"\n[{e.id}] {e.kind.upper()}: {e.heading} | {e.dates}"
@@ -100,4 +103,44 @@ def load_profile() -> Profile:
                 if (isinstance(b, dict) and b.get("confirm")) or x.get("confirm"):
                     e.unconfirmed.add(bid)
             entries[eid] = e
-    return Profile(raw=raw, entries=entries, skills=raw.get("skills", {}))
+
+    skills = {cat: list(items) for cat, items in (raw.get("skills") or {}).items()}
+    added = load_added_skills()
+    if added:
+        skills[ADDED_CATEGORY] = [a["skill"] for a in added]
+    return Profile(raw=raw, entries=entries, skills=skills)
+
+
+# ---- skills you add from the draft page ("I have this") ----
+# Kept in their own file next to the profile, so the app never rewrites your hand-edited
+# master.yaml. For profile/master.yaml that's profile/master.added.local.yaml (git-ignored).
+ADDED_CATEGORY = "added_by_you"
+
+
+def added_skills_path() -> Path:
+    p = profile_path()
+    return p.with_name(f"{p.stem}.added.local.yaml")
+
+
+def load_added_skills() -> list[dict]:
+    path = added_skills_path()
+    if not path.exists():
+        return []
+    with open(path, encoding="utf-8") as f:
+        return yaml.safe_load(f) or []
+
+
+def add_skill(skill: str, where: str) -> bool:
+    """Record a skill you confirmed you have, with where you used it. Returns False if the
+    profile already lists it."""
+    skill = skill.strip()
+    if not skill or skill.lower() in load_profile().all_skills:
+        return False
+    added = load_added_skills()
+    added.append({"skill": skill, "where": where.strip(),
+                  "added": __import__("datetime").date.today().isoformat()})
+    path = added_skills_path()
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("# Skills you confirmed with \"I have this\" on a draft page. Edit or delete freely.\n")
+        yaml.safe_dump(added, f, allow_unicode=True, sort_keys=False)
+    return True

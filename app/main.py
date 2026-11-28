@@ -12,7 +12,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import db, drafting, home, pipeline, tracker
+from . import company, db, drafting, home, pipeline, tracker
 from .config import ROOT, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -106,9 +106,33 @@ def job_detail(request: Request, job_id: int):
     return templates.TemplateResponse(request, "job.html", {
         "job": job, "links": links, "reasons": json.loads(job["score_reasons"] or "[]"),
         "statuses": STATUSES, "labels": SOURCE_LABELS, "draft": drafting.latest(job_id),
-        "tailor_cfg": load_config().get("tailor", {}),
+        "tailor_cfg": load_config().get("tailor", {}), "company_why": company.get_why(job["company"]),
         "out": __import__("app.outreach", fromlist=["latest"]).latest(job_id),
         "searches": __import__("app.outreach", fromlist=["x"]).linkedin_searches(job["company"], job["title"])})
+
+
+@app.post("/job/{job_id}/company-why")
+def save_company_why(job_id: int, why: str = Form(""), back: str = Form("")):
+    with db.session() as c:
+        job = c.execute("SELECT company FROM jobs WHERE id=?", (job_id,)).fetchone()
+    company.set_why(job["company"], why)
+    return RedirectResponse(back or f"/job/{job_id}#why", status_code=303)
+
+
+@app.post("/job/{job_id}/description")
+def save_description(job_id: int, description: str = Form(...)):
+    """Paste a posting's text when the job board didn't provide one; the fit score is redone."""
+    from types import SimpleNamespace
+
+    from .scoring import score
+
+    with db.session() as c:
+        job = dict(c.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone())
+        job["description"] = description.replace("\r\n", "\n").strip()
+        pts, why = score(SimpleNamespace(**{**job, "is_remote": bool(job["is_remote"])}), load_config())
+        c.execute("UPDATE jobs SET description=?, score=?, score_reasons=? WHERE id=?",
+                  (job["description"], pts, json.dumps(why), job_id))
+    return RedirectResponse(f"/job/{job_id}", status_code=303)
 
 
 @app.post("/job/{job_id}/tailor")
@@ -127,9 +151,13 @@ def view_draft(request: Request, job_id: int, msg: str = "", err: str = ""):
     if not job or not d:
         return RedirectResponse(f"/job/{job_id}", status_code=303)
     profile = load_profile()
+    if d["draft"]:   # re-score against today's profile, so skills you just added show up right away
+        from .tailor import score
+        d["scores"] = score(d["draft"], profile)
     return templates.TemplateResponse(request, "draft.html", {
         "job": job, "d": d, "entries": profile.entries, "msg": msg, "err": err,
         "needs": drafting.located_needs(d["draft"], profile.entries) if d["draft"] else [],
+        "company_why": company.get_why(job["company"]),
         "prefill": __import__("app.prefill", fromlist=["read_status"]).read_status(d["id"]),
         "file_names": [os.path.basename(f) for f in (d["files"] or [])]})
 
@@ -139,6 +167,10 @@ async def save_draft(request: Request, draft_id: int):
     form = dict(await request.form())
     job_id = int(form.pop("job_id"))
     action = form.pop("action", "save")
+    if "company_why" in form:   # the "Why this company" box is part of the same form
+        with db.session() as c:
+            job = c.execute("SELECT company FROM jobs WHERE id=?", (job_id,)).fetchone()
+        company.set_why(job["company"], form.pop("company_why"))
     drafting.apply_edits(draft_id, form)
     if action == "approve":
         try:
@@ -147,6 +179,46 @@ async def save_draft(request: Request, draft_id: int):
             return RedirectResponse(f"/job/{job_id}/draft?err={quote(str(e))}", status_code=303)
         return RedirectResponse(f"/job/{job_id}/draft?msg={quote('Files created.')}", status_code=303)
     return RedirectResponse(f"/job/{job_id}/draft?msg={quote('Saved and re-scored.')}", status_code=303)
+
+
+@app.post("/draft/{draft_id}/company-why")
+async def draft_company_why(request: Request, draft_id: int):
+    """Save 'Why this company' from the draft page (your other edits are saved too). With
+    redraft=1, start a new draft right away so the letter can use it."""
+    form = dict(await request.form())
+    job_id = int(form.pop("job_id"))
+    why = form.pop("company_why", "")
+    redraft = form.pop("redraft", "") == "1"
+    for k in [k for k in form if k.startswith("where_")] + ["action", "add_keyword"]:
+        form.pop(k, None)
+    drafting.apply_edits(draft_id, form)
+    with db.session() as c:
+        job = c.execute("SELECT company FROM jobs WHERE id=?", (job_id,)).fetchone()
+    company.set_why(job["company"], why)
+    if redraft:
+        drafting.start(job_id)
+        return RedirectResponse(f"/job/{job_id}/draft", status_code=303)
+    return RedirectResponse(f"/job/{job_id}/draft?msg={quote('Saved your reasons for ' + job['company'] + '.')}#why",
+                            status_code=303)
+
+
+@app.post("/draft/{draft_id}/keyword")
+async def draft_keyword(request: Request, draft_id: int):
+    """'I have this' / 'Add to resume' for an ATS keyword. The buttons live inside the draft form,
+    so your unsaved edits arrive too and are saved first."""
+    form = dict(await request.form())
+    job_id = int(form.pop("job_id"))
+    keyword = form.pop("add_keyword", "")
+    where = form.pop(f"where_{keyword}", "")
+    for k in [k for k in form if k.startswith("where_")]:
+        form.pop(k)
+    form.pop("action", None)
+    drafting.apply_edits(draft_id, form)
+    try:
+        msg = drafting.add_keyword(draft_id, keyword, where)
+    except ValueError as e:
+        return RedirectResponse(f"/job/{job_id}/draft?err={quote(str(e))}#ats", status_code=303)
+    return RedirectResponse(f"/job/{job_id}/draft?msg={quote(msg)}#ats", status_code=303)
 
 
 @app.get("/draft/{draft_id}/file/{name}")

@@ -81,14 +81,56 @@ def apply_edits(did: int, form: dict) -> dict:
         old = sec["bullets"]
         sec["bullets"] = [
             {"text": t,
-             "source": old[i]["source"] if i < len(old) else ["you"],
-             "unconfirmed": old[i]["unconfirmed"] if i < len(old) else False}
+             "source": old[i].get("source", ["you"]) if i < len(old) else ["you"],
+             "unconfirmed": old[i].get("unconfirmed", False) if i < len(old) else False}
             for i, t in enumerate(lines)]
     scores = score(draft, load_profile())
     with db.session() as c:
         c.execute("UPDATE drafts SET draft=?, scores=?, updated_at=?, status='ready' WHERE id=?",
                   (json.dumps(draft), json.dumps(scores), _now(), did))
     return draft
+
+
+def _skill_category_for(draft: dict) -> dict:
+    """The resume skills line a new keyword should join: a data/analytics line if there is one,
+    otherwise the first line (or a new "Skills" line on an empty resume)."""
+    cats = draft.setdefault("skills", [])
+    for cat in cats:
+        if any(word in cat["category"].lower() for word in ("data", "analytic")):
+            return cat
+    if not cats:
+        cats.append({"category": "Skills", "items": []})
+    return cats[0]
+
+
+def add_keyword(did: int, keyword: str, where: str = "") -> str:
+    """'I have this': add a posting keyword to this resume's skills (and to your profile first if
+    it isn't there yet, noting where you used it). Returns a message for the page."""
+    from .profile import add_skill
+
+    keyword = keyword.strip()
+    profile = load_profile()
+    added_to_profile = False
+    if keyword.lower() not in profile.all_skills:
+        if not where:
+            raise ValueError(f"Pick where you used {keyword} first.")
+        added_to_profile = add_skill(keyword, where)
+        profile = load_profile()
+
+    with db.session() as c:
+        row = c.execute("SELECT draft FROM drafts WHERE id=?", (did,)).fetchone()
+    draft = json.loads(row["draft"])
+    on_resume = {s.lower() for cat in draft.get("skills", []) for s in cat["items"]}
+    if keyword.lower() not in on_resume:
+        cat = _skill_category_for(draft)
+        cat["items"].append(keyword)
+    scores = score(draft, profile)
+    with db.session() as c:
+        c.execute("UPDATE drafts SET draft=?, scores=?, updated_at=?, status='ready' WHERE id=?",
+                  (json.dumps(draft), json.dumps(scores), _now(), did))
+    where_note = f" (used in {where})" if added_to_profile else ""
+    return (f"Added {keyword} to your profile{where_note} and to this resume's skills."
+            if added_to_profile else f"Added {keyword} to this resume's skills.")
 
 
 def open_needs(draft: dict) -> list[str]:

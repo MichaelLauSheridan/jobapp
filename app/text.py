@@ -72,17 +72,22 @@ _COMPANY_SUFFIX = re.compile(r"\b(inc|incorporated|ltd|limited|llc|corp|corporat
                              r"canada|group|holdings|technologies|technology|the)\b\.?")
 _TITLE_NOISE = re.compile(r"\b(19|20)\d{2}\b|\b(winter|summer|fall|spring|autumn|january|may|september|"
                           r"jan|sept?|term|months?|\d+)\b")
-ALIASES = {"royal bank of": "rbc", "toronto dominion": "td", "td bank": "td", "bank of montreal": "bmo",
-           "canadian imperial bank of commerce": "cibc", "bank of nova scotia": "scotiabank",
+# Name prefix -> one canonical name. A prefix matches whole words only ("td " not "tdx").
+ALIASES = {"royal bank of": "rbc", "rbc": "rbc", "toronto dominion": "td", "td": "td",
+           "bank of montreal": "bmo", "bmo": "bmo",
+           "canadian imperial bank of commerce": "cibc", "cibc": "cibc",
+           "bank of nova scotia": "scotiabank", "scotiabank": "scotiabank",
            "amazon web services": "amazon", "aws": "amazon", "meta platforms": "meta"}
 
 
 def norm_company(name: str) -> str:
     n = (name or "").lower().replace("&", " and ")
     n = re.sub(r"[^a-z0-9 ]", " ", n)
+    n = re.sub(r"^\s*the\s+", "", n)
     for k, v in ALIASES.items():
-        if n.strip().startswith(k):
+        if re.match(rf"\s*{re.escape(k)}\b", n):
             n = v
+            break
     n = _COMPANY_SUFFIX.sub(" ", n)
     return _WS.sub(" ", n).strip()
 

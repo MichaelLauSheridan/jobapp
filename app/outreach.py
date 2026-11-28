@@ -91,7 +91,9 @@ def _user_prompt(job: dict, kind: str) -> str:
         tailored = f"\nTAILORED SUMMARY USED FOR THIS JOB: {dr.get('summary', '')}\n"
     applied = (job.get("applied_at") or "")[:10]
     desc = (job.get("description") or "")[:3000]
+    from .company import prompt_block
     return (f"CANDIDATE PROFILE\n{p.as_prompt()}\n{tailored}\n"
+            f"{prompt_block(job['company'])}"
             f"JOB\nRole: {job['title']}\nCompany: {job['company']}\nLocation: {job.get('location') or ''}\n"
             f"Applied on: {applied or 'not yet'}\n\n{desc}\n\nWrite the {kind} messages now.")
 

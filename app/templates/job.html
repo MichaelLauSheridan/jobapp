@@ -14,7 +14,17 @@
       </div>
     </div>
     <h2 class="section-title mt-7 mb-2">Description</h2>
-    <div class="whitespace-pre-line text-[15px] leading-relaxed text-[#3d3942]">{{ job.description or 'No description captured. Open the posting link.' }}</div>
+    {% if job.description %}
+      <div class="whitespace-pre-line text-[15px] leading-relaxed text-[#3d3942]">{{ job.description }}</div>
+    {% else %}
+      <form method="post" action="/job/{{ job.id }}/description" class="rounded-3xl bg-amber-100 p-4">
+        <label for="desc" class="label">This job site didn't share the posting text.</label>
+        <p class="mt-1 text-sm text-[#5f5865]">Open the apply link, copy the whole posting and paste it here. Without it,
+          the fit score and the resume keywords are partly guesses.</p>
+        <textarea id="desc" name="description" rows="8" required class="mt-3 w-full text-sm" placeholder="Paste the job description"></textarea>
+        <button class="btn-dark mt-3">Save description</button>
+      </form>
+    {% endif %}
   </section>
 
   <aside class="flex flex-[1_1_320px] flex-col gap-5">
@@ -37,6 +47,17 @@
       <p class="mt-2 text-xs muted">Uses {{ 'your Claude plan' if tailor_cfg.get('backend','claude_cli')=='claude_cli' else 'API credits' }}
         · {{ tailor_cfg.get('model','') }} · about 1 minute. Nothing is sent to employers.</p>
     </div>
+
+    <form method="post" action="/job/{{ job.id }}/company-why" id="why" class="card flex flex-col gap-3">
+      <h2 class="section-title">Why {{ job.company }}?</h2>
+      <p class="text-xs muted">Your own reasons, in your own words. Saved for <b class="text-ink">every</b> {{ job.company }} posting,
+        so cover letters and messages can use them instead of asking. Only write what's true for you.</p>
+      <label class="sr-only" for="why-text">Why {{ job.company }}</label>
+      <textarea id="why-text" name="why" rows="4" class="text-sm"
+        placeholder="e.g. a team, product, value or person there that genuinely interests you, and why">{{ company_why }}</textarea>
+      <input type="hidden" name="back" value="/job/{{ job.id }}#why">
+      <button class="btn-dark">{{ 'Update' if company_why else 'Save' }}</button>
+    </form>
 
     <div class="card">
       <h2 class="section-title">Apply links</h2>

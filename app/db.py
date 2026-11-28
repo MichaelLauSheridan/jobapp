@@ -57,6 +57,13 @@ CREATE TABLE IF NOT EXISTS outreach (
     status TEXT NOT NULL,            -- running | ready | error | sent
     data TEXT, error TEXT, created_at TEXT NOT NULL, sent_at TEXT
 );
+-- Your own reasons for wanting to work at a company, reused for every posting there.
+CREATE TABLE IF NOT EXISTS company_notes (
+    company_norm TEXT PRIMARY KEY,
+    company TEXT NOT NULL,
+    why TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 # Columns added after the first release (SQLite can't add them with CREATE TABLE IF NOT EXISTS).

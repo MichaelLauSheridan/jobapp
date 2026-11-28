@@ -64,7 +64,8 @@ ABSOLUTE RULES (truthfulness)
 - This applies to the cover letter too, including "human texture": no invented anecdotes, feelings,
   preferences, habits or backstory ("nobody gave me a template", "the part I love most", "I've
   always been fascinated"). Reasons for wanting the role may only come from MOTIVATION in the
-  profile or from a factual link between the posting and the profile; otherwise use
+  profile, the CANDIDATE'S REASONS block for this company (when given), or a factual link between
+  the posting and the profile; otherwise use
   [NEEDS: why this role/company appeals to you].
 - Use absolute dates ("October 2026"), never relative ones ("last month"), since letters get reused.
 
@@ -99,7 +100,9 @@ def build_user(job: dict, profile: Profile) -> str:
     desc = (job.get("description") or "").strip()
     if len(desc) > 9000:
         desc = desc[:9000] + "\n[posting truncated]"
+    from .company import prompt_block
     return (f"CANDIDATE PROFILE\n{profile.as_prompt()}\n\n"
+            f"{prompt_block(job['company'])}"
             f"JOB POSTING\nRole: {job['title']}\nCompany: {job['company']}\n"
             f"Location: {job.get('location') or ''}\n\n{desc or '[No description captured]'}\n\n"
             "Return the JSON object described by the schema.")

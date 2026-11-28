@@ -111,3 +111,69 @@ def test_located_needs_says_where_each_placeholder_is():
     assert found[0]["where"] == "Cover letter" and found[0]["field"] == "cover_letter"
     assert found[1]["where"].endswith("bullet 2") and found[1]["field"] == f"sec_{exp.id}"
     assert len(found) == len(open_needs(draft))   # same count that blocks approval
+
+
+def test_i_have_this_adds_keyword_to_profile_and_resume(tmpdb, tmp_path, monkeypatch):
+    import app.profile as prof
+    from app import drafting
+    monkeypatch.setattr(prof, "added_skills_path", lambda: tmp_path / "added.local.yaml")
+    exp = next(e for e in P.entries.values() if e.kind == "experience")
+    draft = {"summary": "x", "cover_letter": "Dear Hiring Manager,", "keywords": ["Data Quality", "Python"],
+             "skills": [{"category": "Languages", "items": ["Python"]}, {"category": "Data", "items": ["SQL"]}],
+             "sections": [{"entry_id": exp.id, "bullets": [{"text": "Did X.", "source": [f"{exp.id}.b0"]}]}]}
+    with db.session() as c:
+        c.execute("INSERT INTO jobs (id, title, company, found_at) VALUES (1, 'Data Analyst', 'BMO', datetime('now'))")
+        did = c.execute("INSERT INTO drafts (job_id, status, draft, created_at, updated_at) VALUES (1, 'ready', ?, 'x', 'x')",
+                        (json.dumps(draft),)).lastrowid
+    with pytest.raises(ValueError):           # must say where you used it
+        drafting.add_keyword(did, "Data Quality", "")
+    msg = drafting.add_keyword(did, "Data Quality", "Campus Datathon")
+    assert "profile" in msg
+    assert "data quality" in prof.load_profile().all_skills
+    assert "Data Quality (used in: Campus Datathon)" in prof.load_profile().as_prompt()
+    d = drafting.latest(1)
+    assert "Data Quality" in d["draft"]["skills"][1]["items"]          # joined the "Data" line
+    assert "Data Quality" in d["scores"]["ats"]["matched"]
+
+
+def test_company_why_is_saved_per_company_and_reaches_the_prompt(tmpdb):
+    from app import company
+    from app.tailor import build_user
+    company.set_why("BMO Financial Group", "I'm in the TechBiz club and want to work in fintech.")
+    assert company.get_why("BMO") == company.get_why("Bank of Montreal") != ""
+    prompt = build_user({"title": "Data Analyst", "company": "BMO", "description": "x"}, P)
+    assert "TechBiz club" in prompt and "REASONS FOR WANTING TO WORK AT BMO" in prompt
+    company.set_why("BMO", "")
+    assert company.get_why("BMO") == ""
+
+
+def test_draft_page_buttons_end_to_end(tmpdb, tmp_path, monkeypatch):
+    """Click 'I have this', 'Add to resume' and 'Save' for Why-this-company through the real routes."""
+    import app.profile as prof
+    from fastapi.testclient import TestClient
+    from app import company, drafting
+    from app.main import app as web
+    monkeypatch.setattr(prof, "added_skills_path", lambda: tmp_path / "added.local.yaml")
+    exp = next(e for e in P.entries.values() if e.kind == "experience")
+    draft = {"summary": "Student.", "cover_letter": "Dear Hiring Manager,", "keywords": ["Data Quality", "Spark SQL"],
+             "skills": [{"category": "Data", "items": ["SQL"]}],
+             "sections": [{"entry_id": exp.id, "bullets": [{"text": "Did X.", "source": [f"{exp.id}.b0"]}]}]}
+    with db.session() as c:
+        c.execute("INSERT INTO jobs (id, title, company, found_at) VALUES (7, 'Data Analyst', 'BMO', datetime('now'))")
+        did = c.execute("INSERT INTO drafts (job_id, status, draft, created_at, updated_at) VALUES (7, 'ready', ?, 'x', 'x')",
+                        (json.dumps(draft),)).lastrowid
+    client = TestClient(web)
+    form = {"job_id": "7", "summary": "Edited summary.", "cover_letter": "Dear Hiring Manager,", "skills": "Data: SQL",
+            f"sec_{exp.id}": "Did X.", "company_why": ""}
+    page = client.get("/job/7/draft").text
+    assert "I have this" in page and "Add to resume" in page          # Data Quality gap, Spark SQL fixable
+    r = client.post(f"/draft/{did}/keyword", data={**form, "add_keyword": "Data Quality", "where_Data Quality": "Datathon"})
+    assert r.status_code == 200 and "Added Data Quality to your profile" in r.text
+    form["skills"] = "Data: SQL, Data Quality"                         # what the reloaded page now shows
+    r = client.post(f"/draft/{did}/keyword", data={**form, "add_keyword": "Spark SQL"})
+    d = drafting.latest(7)["draft"]
+    assert d["summary"] == "Edited summary."                            # unsaved edits were kept
+    assert {"Data Quality", "Spark SQL"} <= set(d["skills"][0]["items"])
+    client.post(f"/draft/{did}/company-why", data={**form, "company_why": "Fintech + TechBiz club."})
+    assert company.get_why("BMO") == "Fintech + TechBiz club."
+    assert "Fintech + TechBiz club." in client.get("/job/7").text
