@@ -4,18 +4,79 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}JobApp{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
   <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script>
+    // "Soft & Friendly" theme: warm cream background, white rounded cards, pill buttons.
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Nunito", "system-ui", "sans-serif"] },
+          colors: {
+            cream: "#fff8f1",   // page background
+            sand: "#f3ebe3",    // soft fills, progress track
+            line: "#eadfd3",    // borders
+            ink: "#2d2a32",     // main text, dark buttons
+            muted: "#6b6470",   // secondary text
+            accent: { DEFAULT: "#c2410c", soft: "#ffedd5" },
+          },
+          borderRadius: { card: "28px" },
+        },
+      },
+    };
+  </script>
+  <style type="text/tailwindcss">
+    @layer base {
+      body { @apply bg-cream text-ink font-sans antialiased; }
+      h1 { @apply font-extrabold; }
+      a { @apply text-ink; }
+      input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea {
+        @apply rounded-2xl border border-line bg-white px-3 py-2 text-ink outline-none
+               focus:border-accent focus:ring-2 focus:ring-accent/20;
+      }
+      textarea[readonly] { @apply bg-cream; }
+    }
+    @layer components {
+      .card { @apply bg-white rounded-card p-6; }
+      .card-tight { @apply bg-white rounded-3xl p-5; }
+      .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-extrabold
+                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed; }
+      .btn-dark { @apply btn bg-ink text-white hover:bg-black; }
+      .btn-accent { @apply btn bg-accent text-white hover:bg-orange-800; }
+      .btn-ghost { @apply btn bg-white text-ink border border-line hover:bg-sand; }
+      .btn-sm { @apply px-3.5 py-1.5 text-xs; }
+      .icon-btn { @apply inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/70 text-muted
+                         hover:bg-white hover:text-ink; }
+      .chip { @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold; }
+      .link { @apply font-bold text-accent hover:underline; }
+      .label { @apply block text-sm font-bold; }
+      .note { @apply rounded-2xl px-4 py-3 text-sm; }
+      .muted { @apply text-muted; }
+      .section-title { @apply text-base font-extrabold; }
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
-  <header class="bg-white border-b">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
-      <a href="/" class="font-semibold text-lg">JobApp</a>
-      <span class="text-sm text-slate-500">Internship search for Jan–Aug 2027 · GTA / Remote</span>
-      <a href="/followups" class="ml-auto text-sm text-blue-700 hover:underline">Follow-ups</a>
-      <a href="/stats" class="text-sm text-blue-700 hover:underline">What's working</a>
-      <a href="/tracker" class="text-sm text-blue-700 hover:underline">Sheet tracker</a>
-    </div>
-  </header>
-  <main class="max-w-6xl mx-auto px-4 py-6">{% block body %}{% endblock %}</main>
+<body>
+  <div class="mx-auto max-w-6xl px-4 py-6 sm:px-8">
+    <header class="flex flex-wrap items-center gap-4">
+      <a href="/" class="text-2xl font-extrabold tracking-tight">jobapp</a>
+      {% set path = request.url.path %}
+      {% set nav = [('/', 'Jobs'), ('/followups', 'Follow-ups'), ('/stats', "What's working"), ('/tracker', 'Tracker')] %}
+      <nav class="flex flex-wrap gap-1 rounded-full bg-white p-1.5 text-[15px] font-bold" aria-label="Main">
+        {% for href, label in nav %}
+          {% set active = (path == href) or (href == '/' and (path.startswith('/job') or path.startswith('/draft'))) %}
+          <a href="{{ href }}" class="flex items-center gap-2 rounded-full px-4 py-2 {{ 'bg-accent text-white' if active else 'hover:bg-sand' }}"
+             {% if active %}aria-current="page"{% endif %}>{{ label }}
+            {% if href == '/followups' and nav_counts().followups_due %}
+              <span class="rounded-full px-2 text-xs {{ 'bg-white text-accent' if active else 'bg-accent text-white' }}">{{ nav_counts().followups_due }}</span>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </nav>
+      <span class="ml-auto text-sm muted">Jan–Aug 2027 · GTA or remote</span>
+    </header>
+    <main class="mt-7">{% block body %}{% endblock %}</main>
+  </div>
 </body>
 </html>

@@ -1,68 +1,80 @@
 {% extends "base.html" %}
 {% block title %}{{ job.title }} – {{ job.company }}{% endblock %}
 {% block body %}
-<a href="/" class="text-sm text-blue-700">&larr; All jobs</a>
-<div class="mt-3 grid md:grid-cols-3 gap-6">
-  <section class="md:col-span-2 bg-white border rounded p-5">
-    <h1 class="text-xl font-semibold">{{ job.title }}</h1>
-    <p class="text-slate-600">{{ job.company }} · {{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p>
-    <p class="text-sm text-slate-500 mt-1">Found {{ job.found_at|ago }}{% if job.posted_at %} · posted {{ job.posted_at|ago }}{% endif %}</p>
-    <h2 class="font-semibold mt-5 mb-2">Description</h2>
-    <div class="whitespace-pre-line text-sm leading-relaxed">{{ job.description or 'No description captured. Open the posting link.' }}</div>
+<a href="/" class="link text-sm">&larr; All jobs</a>
+<div class="mt-4 flex flex-wrap items-start gap-5">
+  <section class="card min-w-0 flex-[999_1_520px]">
+    <div class="flex flex-wrap items-start gap-4">
+      <span class="flex h-16 w-16 flex-none items-center justify-center rounded-2xl text-2xl font-extrabold
+        {{ 'bg-green-100' if job.score >= 85 else ('bg-amber-100' if job.score >= 60 else 'bg-sand') }}" title="Fit score out of 100">{{ job.score }}</span>
+      <div class="min-w-0 flex-1">
+        <h1 class="text-2xl leading-tight">{{ job.title }}</h1>
+        <p class="mt-1 font-semibold text-[#5f5865]">{{ job.company }} · {{ job.location }}{% if job.is_remote %} · Remote{% endif %}</p>
+        <p class="mt-1 text-sm muted">Found {{ job.found_at|ago }}{% if job.posted_at %} · posted {{ job.posted_at|ago }}{% endif %}</p>
+      </div>
+    </div>
+    <h2 class="section-title mt-7 mb-2">Description</h2>
+    <div class="whitespace-pre-line text-[15px] leading-relaxed text-[#3d3942]">{{ job.description or 'No description captured. Open the posting link.' }}</div>
   </section>
-  <aside class="space-y-4">
-    <div class="bg-white border rounded p-4">
-      <div class="text-3xl font-bold">{{ job.score }}<span class="text-base text-slate-400">/100</span></div>
-      <ul class="mt-2 text-sm text-slate-600 space-y-0.5">{% for r in reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+
+  <aside class="flex flex-[1_1_320px] flex-col gap-5">
+    <div class="card">
+      <h2 class="section-title">Why it scored {{ job.score }}</h2>
+      <ul class="mt-3 flex flex-col gap-1.5 text-sm">{% for r in reasons %}
+        <li class="rounded-xl px-3 py-1.5 {{ 'bg-red-50 text-red-900' if r.startswith('-') else 'bg-green-50 text-green-900' }}">{{ r }}</li>{% endfor %}</ul>
     </div>
-    <div class="bg-white border rounded p-4">
-      <h3 class="font-semibold mb-2">Apply links</h3>
-      <ul class="text-sm space-y-1">{% for l in links %}
-        <li><a href="{{ l.url }}" target="_blank" rel="noopener" class="text-blue-700 hover:underline">{{ labels.get(l.source, l.source) }}</a>
-          <span class="text-slate-400">· {{ l.first_seen|ago }}</span></li>{% endfor %}</ul>
-      <p class="text-xs text-slate-500 mt-2">Tip: apply on the company site when available. It's the original posting.</p>
-    </div>
-    <form method="post" action="/job/{{ job.id }}/status" class="bg-white border rounded p-4 space-y-2">
-      <input type="hidden" name="back" value="/job/{{ job.id }}">
-      <label class="text-sm block">Status
-        <select name="status" class="block w-full border rounded px-2 py-1">{% for s in statuses %}
-          <option value="{{ s }}" {{ 'selected' if job.status==s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
-      <label class="text-sm block">Notes
-        <textarea name="notes" rows="3" class="block w-full border rounded px-2 py-1">{{ job.notes or '' }}</textarea></label>
-      <button class="bg-slate-800 text-white rounded px-3 py-1.5 text-sm">Save</button>
-      {% if job.applied_at %}<p class="text-xs text-slate-500">Applied {{ job.applied_at|ago }}</p>{% endif %}
-    </form>
-    <div class="bg-white border rounded p-4 text-sm space-y-2">
-      <h3 class="font-semibold">Resume &amp; cover letter</h3>
+
+    <div class="card">
+      <h2 class="section-title">Resume &amp; cover letter</h2>
       {% if draft %}
-        <p class="text-slate-600">Latest draft: <b>{{ draft.status }}</b> · {{ draft.created_at|ago }}</p>
-        <a href="/job/{{ job.id }}/draft" class="inline-block bg-slate-800 text-white rounded px-3 py-1.5">Open draft</a>
+        <p class="mt-2 text-sm muted">Latest draft: <b class="text-ink">{{ draft.status }}</b> · {{ draft.created_at|ago }}</p>
+        <a href="/job/{{ job.id }}/draft" class="btn-dark mt-3 w-full">Open draft</a>
       {% endif %}
       <form method="post" action="/job/{{ job.id }}/tailor">
-        <button class="{{ 'border bg-white' if draft else 'bg-blue-700 text-white' }} rounded px-3 py-1.5 mt-1">
+        <button class="{{ 'btn-ghost' if draft else 'btn-accent' }} mt-3 w-full">
           {{ 'Write a new draft' if draft else 'Tailor resume & cover letter' }}</button>
       </form>
-      <p class="text-xs text-slate-500">Uses {{ 'your Claude plan' if tailor_cfg.get('backend','claude_cli')=='claude_cli' else 'API credits' }}
+      <p class="mt-2 text-xs muted">Uses {{ 'your Claude plan' if tailor_cfg.get('backend','claude_cli')=='claude_cli' else 'API credits' }}
         · {{ tailor_cfg.get('model','') }} · about 1 minute. Nothing is sent to employers.</p>
     </div>
 
-    <div id="outreach" class="bg-white border rounded p-4 text-sm space-y-2">
-      <h3 class="font-semibold">Get a referral</h3>
-      <p class="text-xs text-slate-500">Referrals are one of the best ways to get an interview. Find someone at {{ job.company }},
-        connect with a short note, and ask for a quick chat. Opens LinkedIn in your browser; JobApp doesn't browse or send anything.</p>
-      <ul class="space-y-1">{% for s in searches %}
-        <li><a href="{{ s.url }}" target="_blank" rel="noopener" class="text-blue-700 hover:underline">{{ s.label }} ↗</a></li>{% endfor %}</ul>
+    <div class="card">
+      <h2 class="section-title">Apply links</h2>
+      <ul class="mt-2 flex flex-col gap-1.5 text-sm">{% for l in links %}
+        <li><a href="{{ l.url }}" target="_blank" rel="noopener" class="link">{{ labels.get(l.source, l.source) }} ↗</a>
+          <span class="muted">· {{ l.first_seen|ago }}</span></li>{% endfor %}</ul>
+      <p class="mt-2 text-xs muted">Tip: apply on the company site when you can. It's the original posting.</p>
+    </div>
+
+    <form method="post" action="/job/{{ job.id }}/status" class="card flex flex-col gap-3">
+      <h2 class="section-title">Your progress</h2>
+      <input type="hidden" name="back" value="/job/{{ job.id }}">
+      <label class="label">Status
+        <select name="status" class="mt-1 block w-full">{% for s in statuses %}
+          <option value="{{ s }}" {{ 'selected' if job.status==s }}>{{ 'Docs ready' if s == 'ready' else s|capitalize }}</option>{% endfor %}</select></label>
+      <label class="label">Notes
+        <textarea name="notes" rows="3" class="mt-1 block w-full font-normal">{{ job.notes or '' }}</textarea></label>
+      <button class="btn-dark">Save</button>
+      {% if job.applied_at %}<p class="text-xs muted">Applied {{ job.applied_at|ago }}</p>{% endif %}
+    </form>
+
+    <div id="outreach" class="card flex flex-col gap-3 text-sm">
+      <h2 class="section-title">Get a referral</h2>
+      <p class="text-xs muted">Referrals are one of the best ways to get an interview. Find someone at {{ job.company }},
+        connect with a short note, and ask for a quick chat. Links open LinkedIn in your browser; JobApp doesn't browse or send anything.</p>
+      <ul class="flex flex-col gap-1.5">{% for s in searches %}
+        <li><a href="{{ s.url }}" target="_blank" rel="noopener" class="link">{{ s.label }} ↗</a></li>{% endfor %}</ul>
       <form method="post" action="/job/{{ job.id }}/outreach/referral">
         <input type="hidden" name="back" value="/job/{{ job.id }}#outreach">
-        <button class="border rounded px-3 py-1.5 bg-white hover:bg-slate-100">{{ 'Write new messages' if out.referral else 'Draft connection note + message' }}</button>
+        <button class="btn-ghost w-full">{{ 'Write new messages' if out.referral else 'Draft connection note + message' }}</button>
       </form>
       {% with o=out.referral, kind='referral', back='/job/' ~ job.id ~ '#outreach' %}{% include "_outreach.html" %}{% endwith %}
 
       {% if job.status == 'applied' or out.followup %}
-      <h3 class="font-semibold pt-3 border-t">Follow up</h3>
+      <h2 class="section-title mt-2 border-t border-line pt-4">Follow up</h2>
       <form method="post" action="/job/{{ job.id }}/outreach/followup">
         <input type="hidden" name="back" value="/job/{{ job.id }}#outreach">
-        <button class="border rounded px-3 py-1.5 bg-white hover:bg-slate-100">{{ 'Write a new follow-up' if out.followup else 'Draft follow-up email' }}</button>
+        <button class="btn-ghost w-full">{{ 'Write a new follow-up' if out.followup else 'Draft follow-up email' }}</button>
       </form>
       {% with o=out.followup, kind='followup', back='/job/' ~ job.id ~ '#outreach' %}{% include "_outreach.html" %}{% endwith %}
       {% endif %}

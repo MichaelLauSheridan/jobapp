@@ -12,7 +12,7 @@ from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from . import db, drafting, pipeline, tracker
+from . import db, drafting, home, pipeline, tracker
 from .config import ROOT, load_config
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -70,6 +70,7 @@ def _ago(ts: str | None) -> str:
 
 
 templates.env.filters["ago"] = _ago
+templates.env.globals["nav_counts"] = home.nav_counts
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -91,7 +92,7 @@ def index(request: Request, status: str = "active", min_score: int = 0, q: str =
         runs = c.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 6").fetchall()
     return templates.TemplateResponse(request, "index.html", {
         "jobs": jobs, "counts": counts, "runs": runs, "status": status, "min_score": min_score,
-        "q": q, "sort": sort, "statuses": STATUSES, "json": json,
+        "q": q, "sort": sort, "statuses": STATUSES, "json": json, "home": home.summary(),
         "running": [k for k, l in pipeline._locks.items() if l.locked()]})
 
 

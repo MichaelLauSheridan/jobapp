@@ -2,138 +2,136 @@
 {% block title %}Draft – {{ job.company }}{% endblock %}
 {% block body %}
 {% if d.status == 'running' %}<meta http-equiv="refresh" content="5">{% endif %}
-<a href="/job/{{ job.id }}" class="text-sm text-blue-700">&larr; {{ job.title }} · {{ job.company }}</a>
+<a href="/job/{{ job.id }}" class="link text-sm">&larr; {{ job.title }} · {{ job.company }}</a>
 
-{% if msg %}<p class="mt-3 p-2 rounded bg-green-50 text-green-800 text-sm">{{ msg }}</p>{% endif %}
-{% if err %}<p class="mt-3 p-2 rounded bg-red-50 text-red-800 text-sm">{{ err }}</p>{% endif %}
+{% if msg %}<p class="note mt-4 bg-green-100 text-green-900">{{ msg }}</p>{% endif %}
+{% if err %}<p class="note mt-4 bg-red-50 text-red-900">{{ err }}</p>{% endif %}
 
 {% if d.status == 'running' %}
-  <div class="mt-6 bg-white border rounded p-8 text-center">
-    <p class="text-lg">Writing your tailored resume and cover letter…</p>
-    <p class="text-sm text-slate-500 mt-2">Usually about a minute. This page refreshes on its own.</p>
+  <div class="card mt-5 py-12 text-center">
+    <p class="text-xl font-extrabold">Writing your tailored resume and cover letter…</p>
+    <p class="mt-2 muted">Usually about a minute. This page refreshes on its own.</p>
   </div>
 {% elif d.status == 'error' %}
-  <div class="mt-6 bg-white border border-red-200 rounded p-6">
-    <p class="font-semibold text-red-800">Drafting failed</p>
-    <p class="text-sm mt-2 whitespace-pre-line">{{ d.error }}</p>
-    <form method="post" action="/job/{{ job.id }}/tailor" class="mt-4"><button class="bg-slate-800 text-white rounded px-3 py-1.5 text-sm">Try again</button></form>
+  <div class="card mt-5">
+    <p class="text-lg font-extrabold text-red-800">Drafting failed</p>
+    <p class="mt-2 whitespace-pre-line text-sm">{{ d.error }}</p>
+    <form method="post" action="/job/{{ job.id }}/tailor" class="mt-4"><button class="btn-dark">Try again</button></form>
   </div>
 {% else %}
 {% set dr = d.draft %}{% set sc = d.scores %}
-<form method="post" action="/draft/{{ d.id }}/save" class="mt-3 grid lg:grid-cols-3 gap-6">
+<form method="post" action="/draft/{{ d.id }}/save" class="mt-4 flex flex-wrap items-start gap-5">
   <input type="hidden" name="job_id" value="{{ job.id }}">
-  <section class="lg:col-span-2 space-y-5">
-    <div class="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-900">
-      Read every line before approving. Each resume line is traced to your profile, but you're the one who knows it's true.
+  <section class="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
+    <p class="note bg-amber-100">Read every line before approving. Each resume line is traced to your profile, but you're the one who knows it's true.</p>
+
+    <div class="card">
+      <h2 class="section-title mb-3">Cover letter</h2>
+      <textarea name="cover_letter" rows="18" class="w-full p-4 font-serif leading-relaxed">{{ dr.cover_letter }}</textarea>
     </div>
 
-    <div class="bg-white border rounded p-4">
-      <h2 class="font-semibold mb-2">Cover letter</h2>
-      <textarea name="cover_letter" rows="18" class="w-full border rounded p-3 font-serif leading-relaxed">{{ dr.cover_letter }}</textarea>
-    </div>
-
-    <div class="bg-white border rounded p-4 space-y-4">
-      <h2 class="font-semibold">Resume</h2>
-      <label class="block text-sm font-medium">Summary
-        <textarea name="summary" rows="3" class="mt-1 w-full border rounded p-2 font-normal">{{ dr.summary }}</textarea></label>
-      <label class="block text-sm font-medium">Skills <span class="text-slate-400 font-normal">(one category per line, "Category: a, b")</span>
-        <textarea name="skills" rows="{{ dr.skills|length + 1 }}" class="mt-1 w-full border rounded p-2 font-normal">{% for c in dr.skills %}{{ c.category }}: {{ c['items']|join(', ') }}
+    <div class="card flex flex-col gap-4">
+      <h2 class="section-title">Resume</h2>
+      <label class="label">Summary
+        <textarea name="summary" rows="3" class="mt-1 w-full font-normal">{{ dr.summary }}</textarea></label>
+      <label class="label">Skills <span class="font-normal muted">(one category per line, "Category: a, b")</span>
+        <textarea name="skills" rows="{{ dr.skills|length + 1 }}" class="mt-1 w-full font-normal">{% for c in dr.skills %}{{ c.category }}: {{ c['items']|join(', ') }}
 {% endfor %}</textarea></label>
       {% for s in dr.sections %}{% set e = entries[s.entry_id] %}
-        <label class="block text-sm font-medium">{{ e.heading }}
-          <span class="text-slate-400 font-normal">· {{ e.kind }} · one bullet per line</span>
-          {% if s.bullets|selectattr('unconfirmed')|list %}<span class="ml-1 text-xs bg-amber-100 text-amber-800 rounded px-1">uses unconfirmed profile bullets</span>{% endif %}
-          <textarea name="sec_{{ s.entry_id }}" rows="{{ s.bullets|length + 1 }}" class="mt-1 w-full border rounded p-2 font-normal">{% for b in s.bullets %}{{ b.text }}
+        <label class="label">{{ e.heading }}
+          <span class="font-normal muted">· {{ e.kind }} · one bullet per line</span>
+          {% if s.bullets|selectattr('unconfirmed')|list %}<span class="chip ml-1 bg-amber-100 text-amber-900">uses unconfirmed profile bullets</span>{% endif %}
+          <textarea name="sec_{{ s.entry_id }}" rows="{{ s.bullets|length + 1 }}" class="mt-1 w-full font-normal">{% for b in s.bullets %}{{ b.text }}
 {% endfor %}</textarea></label>
       {% endfor %}
     </div>
 
-    <div class="flex flex-wrap gap-3 items-center">
-      <button name="action" value="save" class="border bg-white rounded px-4 py-2 text-sm hover:bg-slate-100">Save edits &amp; re-score</button>
-      <button name="action" value="approve" class="bg-green-700 text-white rounded px-4 py-2 text-sm hover:bg-green-800">Approve &amp; create files</button>
-      <span class="text-xs text-slate-500">Approving is blocked while any [NEEDS: …] remains.</span>
+    <div class="flex flex-wrap items-center gap-3">
+      <button name="action" value="save" class="btn-ghost">Save edits &amp; re-score</button>
+      <button name="action" value="approve" class="btn-accent">Approve &amp; create files</button>
+      <span class="text-xs muted">Approving is blocked while any [NEEDS: …] remains.</span>
     </div>
   </section>
 
-  <aside class="space-y-4 text-sm">
+  <aside class="flex flex-[1_1_320px] flex-col gap-5 text-sm">
     {% if d.status == 'approved' %}
-    <div class="bg-green-50 border border-green-200 rounded p-4">
-      <h3 class="font-semibold text-green-900">Files ready</h3>
-      <ul class="mt-2 space-y-1">{% for n in file_names %}
-        <li><a class="text-blue-700 hover:underline" href="/draft/{{ d.id }}/file/{{ n }}">{{ n }}</a></li>{% endfor %}</ul>
-      <button formaction="/draft/{{ d.id }}/open-folder" class="mt-3 border bg-white rounded px-3 py-1">Open folder</button>
+    <div class="card bg-green-50">
+      <h3 class="section-title text-green-900">Files ready</h3>
+      <ul class="mt-2 flex flex-col gap-1">{% for n in file_names %}
+        <li><a class="link" href="/draft/{{ d.id }}/file/{{ n }}">{{ n }}</a></li>{% endfor %}</ul>
+      <button formaction="/draft/{{ d.id }}/open-folder" class="btn-ghost btn-sm mt-3">Open folder</button>
     </div>
     {% if d.ats %}
-    <div class="bg-white border rounded p-4 {{ '' if d.ats.ok else 'border-amber-300' }}">
-      <h3 class="font-semibold">ATS read-back: {{ 'all clear' if d.ats.ok else 'check these' }}</h3>
-      <p class="text-xs text-slate-500">The resume PDF read back as plain text, the way an applicant tracking system sees it.</p>
-      <ul class="mt-2 space-y-0.5">{% for label, ok, detail in d.ats.checks %}
-        <li class="{{ 'text-green-800' if ok else 'text-red-700' }}">{{ '✓' if ok else '✗' }} {{ label }}{% if detail %} <span class="text-slate-500">({{ detail }})</span>{% endif %}</li>{% endfor %}
-        <li class="text-slate-700">Keywords found in the PDF: {{ d.ats.keyword_coverage }}%</li>
+    <div class="card {{ '' if d.ats.ok else 'ring-2 ring-amber-300' }}">
+      <h3 class="section-title">ATS read-back: {{ 'all clear' if d.ats.ok else 'check these' }}</h3>
+      <p class="mt-1 text-xs muted">The resume PDF read back as plain text, the way an applicant tracking system sees it.</p>
+      <ul class="mt-2 flex flex-col gap-0.5">{% for label, ok, detail in d.ats.checks %}
+        <li class="{{ 'text-green-800' if ok else 'text-red-700' }}">{{ '✓' if ok else '✗' }} {{ label }}{% if detail %} <span class="muted">({{ detail }})</span>{% endif %}</li>{% endfor %}
+        <li>Keywords found in the PDF: <b>{{ d.ats.keyword_coverage }}%</b></li>
       </ul>
     </div>
     {% endif %}
-    <div class="bg-white border border-blue-200 rounded p-4">
-      <h3 class="font-semibold">Apply</h3>
-      <button formaction="/draft/{{ d.id }}/prefill" class="mt-2 w-full bg-blue-700 text-white rounded px-3 py-2">Open &amp; pre-fill application</button>
-      <p class="text-xs text-slate-500 mt-2">Opens the company's form in a separate browser window, fills your details and attaches
+    <div class="card">
+      <h3 class="section-title">Apply</h3>
+      <button formaction="/draft/{{ d.id }}/prefill" class="btn-accent mt-3 w-full">Open &amp; pre-fill application</button>
+      <p class="mt-2 text-xs muted">Opens the company's form in a separate browser window, fills your details and attaches
         these files. It never submits. Review it, answer anything left, and click Submit yourself.
         First time on Workday or similar sites, you sign in yourself, then click “Fill this page again” in the JobApp panel.</p>
       {% if prefill %}
         {% set last = prefill.fills[-1] if prefill.fills else None %}
-        <div class="mt-3 text-xs border-t pt-2">
+        <div class="mt-3 rounded-2xl bg-cream p-3 text-xs">
           <p><b>{{ 'Browser open' if prefill.state == 'open' else 'Last pre-fill' }}</b>
-            {% if prefill.state == 'open' %}<a href="" class="text-blue-700 ml-1">refresh</a>{% endif %}</p>
+            {% if prefill.state == 'open' %}<a href="" class="link ml-1">refresh</a>{% endif %}</p>
           {% if last %}
-            <p class="text-green-800 mt-1">Filled {{ last.filled|length }} field(s){% if last.filled %}: {{ last.filled[:8]|join('; ') }}{% endif %}</p>
-            {% if last.needs_you %}<p class="text-amber-800 mt-1">Needs you: {{ last.needs_you|join('; ') }}</p>{% endif %}
+            <p class="mt-1 text-green-800">Filled {{ last.filled|length }} field(s){% if last.filled %}: {{ last.filled[:8]|join('; ') }}{% endif %}</p>
+            {% if last.needs_you %}<p class="mt-1 text-amber-800">Needs you: {{ last.needs_you|join('; ') }}</p>{% endif %}
           {% endif %}
         </div>
       {% endif %}
-      <p class="text-xs text-slate-600 mt-2">After you submit, set this job's status to “applied”.</p>
+      <p class="mt-2 text-xs">After you submit, set this job's status to “applied”.</p>
     </div>
     {% endif %}
 
-    <div class="bg-white border rounded p-4">
-      <h3 class="font-semibold">ATS keyword match: {{ sc.ats.coverage }}%</h3>
-      <div class="h-2 bg-slate-100 rounded mt-2"><div class="h-2 rounded {{ 'bg-green-600' if sc.ats.coverage>=70 else 'bg-amber-500' }}" style="width: {{ sc.ats.coverage }}%"></div></div>
-      <p class="mt-2 text-slate-600"><b>On your resume:</b> {{ sc.ats.matched|join(', ') or '—' }}</p>
-      {% if sc.ats.fixable %}<p class="mt-1 text-green-800"><b>You have these, add them:</b> {{ sc.ats.fixable|join(', ') }}</p>{% endif %}
-      {% set gaps = sc.ats.missing|reject('in', sc.ats.fixable)|list %}
-      {% if gaps %}<p class="mt-1 text-slate-500"><b>Not in your profile:</b> {{ gaps|join(', ') }}</p>{% endif %}
-    </div>
-
-    <div class="bg-white border rounded p-4">
-      <h3 class="font-semibold">Cover letter AI-tells check: {{ sc.letter.score }}/100</h3>
-      {% if sc.letter.issues %}<ul class="mt-2 list-disc pl-5 text-slate-700 space-y-1">{% for i in sc.letter.issues %}<li>{{ i }}</li>{% endfor %}</ul>
-      {% else %}<p class="mt-1 text-green-800">No common AI tells found.</p>{% endif %}
-      <h3 class="font-semibold mt-3">Resume wording: {{ sc.resume.score }}/100</h3>
-      {% if sc.resume.issues %}<ul class="mt-1 list-disc pl-5 text-slate-700">{% for i in sc.resume.issues %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}
-      <p class="text-xs text-slate-400 mt-2">A local checklist based on your humanize skill. It isn't an AI-detector score.</p>
-    </div>
-
     {% if needs %}
-    <div class="bg-white border border-amber-300 rounded p-4">
-      <h3 class="font-semibold text-amber-900">Fill in before approving ({{ needs|length }} left)</h3>
-      <p class="text-xs text-slate-600 mt-1">Replace each placeholder with the real detail, or delete it (or its sentence),
-        then click <b>Save edits &amp; re-score</b>. Click one to jump to it.</p>
-      <ul class="mt-2 space-y-1.5">
+    <div class="card ring-2 ring-amber-300">
+      <h3 class="section-title">Fill in before approving ({{ needs|length }} left)</h3>
+      <p class="mt-1 text-xs muted">Replace each placeholder with the real detail, or delete it (or its sentence),
+        then click <b class="text-ink">Save edits &amp; re-score</b>. Click one to jump to it.</p>
+      <ul class="mt-3 flex flex-col gap-2">
         {% for n in needs %}
-        <li><button type="button" class="needs-jump text-left w-full rounded border border-amber-200 bg-amber-50 hover:bg-amber-100 px-2 py-1"
+        <li><button type="button" class="needs-jump w-full rounded-2xl bg-amber-100 px-3 py-2 text-left hover:bg-amber-200"
                     data-field="{{ n.field }}" data-text="{{ n.text }}">
-          <span class="block text-xs text-slate-500">{{ n.where }}</span>
+          <span class="block text-xs font-bold text-[#5f5865]">{{ n.where }}</span>
           <span class="font-mono text-xs text-amber-900">{{ n.text }}</span></button></li>
         {% endfor %}
       </ul>
     </div>
     {% endif %}
 
+    <div class="card">
+      <h3 class="section-title">ATS keyword match: {{ sc.ats.coverage }}%</h3>
+      <div class="mt-2 h-3 overflow-hidden rounded-full bg-sand"><div class="h-3 rounded-full {{ 'bg-green-600' if sc.ats.coverage>=70 else 'bg-amber-500' }}" style="width: {{ sc.ats.coverage }}%"></div></div>
+      <p class="mt-3"><b>On your resume:</b> <span class="muted">{{ sc.ats.matched|join(', ') or '—' }}</span></p>
+      {% if sc.ats.fixable %}<p class="mt-1 text-green-800"><b>You have these, add them:</b> {{ sc.ats.fixable|join(', ') }}</p>{% endif %}
+      {% set gaps = sc.ats.missing|reject('in', sc.ats.fixable)|list %}
+      {% if gaps %}<p class="mt-1 muted"><b>Not in your profile:</b> {{ gaps|join(', ') }}</p>{% endif %}
+    </div>
+
+    <div class="card">
+      <h3 class="section-title">Cover letter AI-tells check: {{ sc.letter.score }}/100</h3>
+      {% if sc.letter.issues %}<ul class="mt-2 list-disc space-y-1 pl-5">{% for i in sc.letter.issues %}<li>{{ i }}</li>{% endfor %}</ul>
+      {% else %}<p class="mt-1 text-green-800">No common AI tells found.</p>{% endif %}
+      <h3 class="section-title mt-4">Resume wording: {{ sc.resume.score }}/100</h3>
+      {% if sc.resume.issues %}<ul class="mt-1 list-disc pl-5">{% for i in sc.resume.issues %}<li>{{ i }}</li>{% endfor %}</ul>{% endif %}
+      <p class="mt-2 text-xs muted">A local checklist based on your humanize skill. It isn't an AI-detector score.</p>
+    </div>
+
     {% if dr.needs %}
-    <div class="bg-white border rounded p-4">
-      <h3 class="font-semibold">Questions from the AI (optional)</h3>
-      <p class="text-xs text-slate-500 mt-1">Advice only; these don't block approval. If an answer is a lasting fact about you,
+    <div class="card">
+      <h3 class="section-title">Questions from the AI (optional)</h3>
+      <p class="mt-1 text-xs muted">Advice only; these don't block approval. If an answer is a lasting fact about you,
         add it to profile/master.yaml so future drafts can use it.</p>
-      <ul class="mt-2 list-disc pl-5 space-y-1">{% for n in dr.needs %}<li>{{ n }}</li>{% endfor %}</ul>
+      <ul class="mt-2 list-disc space-y-1 pl-5">{% for n in dr.needs %}<li>{{ n }}</li>{% endfor %}</ul>
     </div>
     {% endif %}
     <script>
@@ -149,13 +147,13 @@
     </script>
 
     {% if dr.warnings %}
-    <div class="bg-white border rounded p-4">
-      <h3 class="font-semibold">Removed by the truth check</h3>
-      <ul class="mt-2 list-disc pl-5 text-slate-600">{% for w in dr.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
+    <div class="card">
+      <h3 class="section-title">Removed by the truth check</h3>
+      <ul class="mt-2 list-disc pl-5 muted">{% for w in dr.warnings %}<li>{{ w }}</li>{% endfor %}</ul>
     </div>
     {% endif %}
 
-    <p class="text-xs text-slate-400">{{ d.meta.model }} · {{ d.meta.billing }} · {{ d.meta.input_tokens }} in / {{ d.meta.output_tokens }} out tokens
+    <p class="text-xs muted">{{ d.meta.model }} · {{ d.meta.billing }} · {{ d.meta.input_tokens }} in / {{ d.meta.output_tokens }} out tokens
       {% if d.meta.cost_usd %}· ≈ ${{ '%.2f'|format(d.meta.cost_usd) }}{% endif %}</p>
   </aside>
 </form>

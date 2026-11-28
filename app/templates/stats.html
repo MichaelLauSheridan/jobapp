@@ -1,40 +1,46 @@
 {% extends "base.html" %}
 {% block title %}What's working – JobApp{% endblock %}
 {% block body %}
-<h1 class="text-xl font-semibold">What's working</h1>
-<p class="text-sm text-slate-600 mt-1">Interview rate = jobs that reached an interview or offer ÷ jobs you applied to.
-  Mark statuses on each job (applied → interview / offer / rejected) to keep this accurate.</p>
+<div class="card">
+  <h1 class="text-3xl">What's working</h1>
+  <p class="mt-1.5 muted">Interview rate = jobs that reached an interview or offer ÷ jobs you applied to.
+    Keep each job's status current (applied → interview / offer / rejected) so this stays accurate.</p>
 
-<div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-  {% for label, val in [('Applied', s.applied), ('Interviews', s.interviews), ('Offers', s.offers), ('Interview rate', s.rate|string + '%')] %}
-  <div class="bg-white border rounded p-4"><div class="text-sm text-slate-500">{{ label }}</div><div class="text-2xl font-semibold">{{ val }}</div></div>
-  {% endfor %}
+  <div class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+    {% set tiles = [('Applied', s.applied, 'bg-sky-100'), ('Interviews', s.interviews, 'bg-green-100'),
+                    ('Offers', s.offers, 'bg-pink-100'), ('Interview rate', s.rate|string + '%', 'bg-amber-100')] %}
+    {% for label, val, colour in tiles %}
+    <div class="rounded-3xl p-5 {{ colour }}"><div class="text-sm font-bold text-[#5f5865]">{{ label }}</div>
+      <div class="mt-1 text-3xl font-extrabold">{{ val }}</div></div>
+    {% endfor %}
+  </div>
+
+  {% if not s.enough %}
+  <p class="note mt-4 bg-sand">{{ s.applied }} application(s) tracked so far. Patterns start meaning something at around 20 to 30,
+    so treat small groups as hints, not proof.</p>
+  {% endif %}
 </div>
 
-{% if not s.enough %}
-<p class="mt-4 p-3 rounded bg-amber-50 border border-amber-200 text-sm text-amber-900">
-  {{ s.applied }} application(s) tracked so far. Patterns start meaning something at around 20 to 30, so treat small groups as hints, not proof.</p>
-{% endif %}
-
-<div class="mt-5 grid md:grid-cols-2 gap-5">
+<div class="mt-5 grid gap-5 md:grid-cols-2">
   {% for title, rows in s.groups.items() %}
-  <section class="bg-white border rounded p-4">
-    <h2 class="font-semibold mb-2">{{ title }}</h2>
+  <section class="card">
+    <h2 class="section-title mb-3">{{ title }}</h2>
     {% if rows %}
     <table class="w-full text-sm">
-      <tr class="text-left text-slate-500"><th>Group</th><th class="text-right">Applied</th><th class="text-right">Interviews</th><th class="w-40">Rate</th></tr>
+      <tr class="text-left muted"><th class="font-bold">Group</th><th class="text-right font-bold">Applied</th>
+        <th class="text-right font-bold">Interviews</th><th class="w-40 font-bold"><span class="pl-3">Rate</span></th></tr>
       {% for r in rows %}
-      <tr class="border-t">
-        <td class="py-1">{{ r.group }}</td><td class="text-right">{{ r.applied }}</td><td class="text-right">{{ r.interviews }}</td>
-        <td class="pl-3"><div class="flex items-center gap-2"><div class="h-2 bg-slate-100 rounded flex-1">
-          <div class="h-2 rounded bg-blue-600" style="width: {{ r.rate }}%"></div></div>
-          <span class="w-9 text-right {{ 'text-slate-400' if r.applied < 5 else '' }}">{{ r.rate }}%</span></div></td>
+      <tr class="border-t border-line">
+        <td class="py-2">{{ r.group }}</td><td class="text-right">{{ r.applied }}</td><td class="text-right">{{ r.interviews }}</td>
+        <td class="pl-3"><div class="flex items-center gap-2"><div class="h-2.5 flex-1 overflow-hidden rounded-full bg-sand">
+          <div class="h-2.5 rounded-full bg-accent" style="width: {{ r.rate }}%"></div></div>
+          <span class="w-9 text-right {{ 'muted' if r.applied < 5 else 'font-bold' }}">{{ r.rate }}%</span></div></td>
       </tr>
       {% endfor %}
     </table>
-    {% else %}<p class="text-sm text-slate-500">No applications yet.</p>{% endif %}
+    {% else %}<p class="note bg-sand">No applications yet.</p>{% endif %}
   </section>
   {% endfor %}
 </div>
-<p class="text-xs text-slate-400 mt-3">Grey rates are groups with fewer than 5 applications.</p>
+<p class="mt-3 text-xs muted">Lighter rates are groups with fewer than 5 applications.</p>
 {% endblock %}

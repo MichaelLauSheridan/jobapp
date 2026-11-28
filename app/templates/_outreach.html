@@ -1,34 +1,36 @@
 {# One drafted message block. Expects: o (outreach row), kind, back #}
 {% if o %}
   {% if o.status == 'running' %}
-    <p class="text-slate-500 text-sm">Writing… (about 30 seconds) <a href="" class="text-blue-700">refresh</a></p>
+    <p class="note bg-sky-100">Writing… (about 30 seconds) <a href="" class="link">refresh</a></p>
   {% elif o.status == 'error' %}
-    <p class="text-red-700 text-sm">Couldn't draft it: {{ o.error }}</p>
+    <p class="note bg-red-50 text-red-900">Couldn't draft it: {{ o.error }}</p>
   {% elif o.data %}
     {% set dd = o.data %}
+    <div class="flex flex-col gap-2 rounded-3xl bg-cream p-4">
     {% if dd.subject %}
-      <label class="block text-xs font-medium mt-1">Subject</label>
-      <div class="flex gap-2"><input readonly value="{{ dd.subject }}" class="flex-1 border rounded px-2 py-1 text-sm bg-slate-50">
-        <button type="button" class="border rounded px-2 text-xs" onclick="navigator.clipboard.writeText(this.previousElementSibling.value);this.textContent='Copied'">Copy</button></div>
+      <div class="copy-group"><div class="flex items-center justify-between gap-2"><span class="label text-xs">Subject</span>
+        <button type="button" class="btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.closest('.copy-group').querySelector('textarea, input').value);this.textContent='Copied'">Copy</button></div>
+        <input readonly value="{{ dd.subject }}" aria-label="Email subject" class="mt-1 w-full text-sm"></div>
     {% endif %}
     {% if dd.short_note %}
-      <label class="block text-xs font-medium mt-2">LinkedIn connection note
-        <span class="{{ 'text-red-700' if dd.note_too_long else 'text-slate-400' }}">({{ dd.note_chars }}/300 characters)</span></label>
-      <div class="flex gap-2 items-start"><textarea readonly rows="3" class="flex-1 border rounded p-2 text-sm bg-slate-50">{{ dd.short_note }}</textarea>
-        <button type="button" class="border rounded px-2 text-xs" onclick="navigator.clipboard.writeText(this.previousElementSibling.value);this.textContent='Copied'">Copy</button></div>
+      <div class="copy-group"><div class="flex items-center justify-between gap-2"><span class="label text-xs">LinkedIn connection note
+        <span class="font-semibold {{ 'text-red-700' if dd.note_too_long else 'muted' }}">({{ dd.note_chars }}/300)</span></span>
+        <button type="button" class="btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.closest('.copy-group').querySelector('textarea, input').value);this.textContent='Copied'">Copy</button></div>
+        <textarea readonly rows="4" aria-label="LinkedIn connection note" class="mt-1 w-full bg-white text-sm">{{ dd.short_note }}</textarea></div>
     {% endif %}
-    <label class="block text-xs font-medium mt-2">{{ 'Email' if kind == 'followup' else 'Message after they accept' }}</label>
-    <div class="flex gap-2 items-start"><textarea readonly rows="7" class="flex-1 border rounded p-2 text-sm bg-slate-50">{{ dd.message }}</textarea>
-      <button type="button" class="border rounded px-2 text-xs" onclick="navigator.clipboard.writeText(this.previousElementSibling.value);this.textContent='Copied'">Copy</button></div>
+    <div class="copy-group"><div class="flex items-center justify-between gap-2"><span class="label text-xs">{{ 'Email' if kind == 'followup' else 'Message after they accept' }}</span>
+      <button type="button" class="btn-ghost btn-sm" onclick="navigator.clipboard.writeText(this.closest('.copy-group').querySelector('textarea, input').value);this.textContent='Copied'">Copy</button></div>
+      <textarea readonly rows="8" aria-label="Message" class="mt-1 w-full bg-white text-sm">{{ dd.message }}</textarea></div>
     {% if dd.needs or '[NEEDS:' in dd.message or '[NEEDS:' in dd.short_note %}
-      <p class="text-amber-800 text-xs mt-1">Fill in before sending: {{ dd.needs|join('; ') if dd.needs else 'the [NEEDS: …] parts' }}</p>
+      <p class="note bg-amber-100 text-xs">Fill in before sending: {{ dd.needs|join('; ') if dd.needs else 'the [NEEDS: …] parts' }}</p>
     {% endif %}
-    {% if dd.check and dd.check.issues %}<p class="text-xs text-slate-500 mt-1">Wording check: {{ dd.check.issues|join('; ') }}</p>{% endif %}
-    <div class="flex gap-2 mt-2 items-center">
-      {% if o.status == 'sent' %}<span class="text-green-700 text-xs">✓ Marked sent {{ o.sent_at|ago }}</span>
+    {% if dd.check and dd.check.issues %}<p class="text-xs muted">Wording check: {{ dd.check.issues|join('; ') }}</p>{% endif %}
+    <div class="flex flex-wrap items-center gap-2">
+      {% if o.status == 'sent' %}<span class="chip bg-green-100 text-green-900">✓ Marked sent {{ o.sent_at|ago }}</span>
       {% else %}<form method="post" action="/outreach/{{ o.id }}/sent"><input type="hidden" name="back" value="{{ back }}">
-        <button class="border rounded px-2 py-1 text-xs bg-white">I sent it</button></form>{% endif %}
-      <span class="text-xs text-slate-400">JobApp never sends messages for you.</span>
+        <button class="btn-dark btn-sm">I sent it</button></form>{% endif %}
+      <span class="text-xs muted">JobApp never sends messages for you.</span>
+    </div>
     </div>
   {% endif %}
 {% endif %}
